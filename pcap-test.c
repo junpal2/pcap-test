@@ -65,30 +65,34 @@ int main(int argc, char* argv[]) {
         }
 
         // Ethernet
-        struct libnet_ethernet_hdr* eth_hdr = (struct libnet_ethernet_hdr*)packet;
+	struct libnet_ethernet_hdr* eth_hdr = (struct libnet_ethernet_hdr*)packet;
         if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP)
             continue;
 
         // IP
-        struct libnet_ipv4_hdr* ip_hdr = (struct libnet_ipv4_hdr*)(packet + sizeof(struct libnet_ethernet_hdr));
+	//printf("%ld\n",sizeof(struct libnet_ethernet_hdr));
+        struct libnet_ipv4_hdr* ip_hdr = (struct libnet_ipv4_hdr*)(packet + 14);
         if (ip_hdr->ip_p != IPPROTO_TCP)
             continue;
 
         int ip_hdr_len = ip_hdr->ip_hl * 4;
+	//printf("%d\n",ip_hdr_len);
         struct libnet_tcp_hdr* tcp_hdr = (struct libnet_tcp_hdr*)((u_char*)ip_hdr + ip_hdr_len);
         int tcp_hdr_len = tcp_hdr->th_off * 4;
-
+	
+	//printf("%d\n", tcp_hdr_len);
         const u_char* payload = (u_char*)tcp_hdr + tcp_hdr_len;
         int total_len = ntohs(ip_hdr->ip_len);
         int payload_len = total_len - ip_hdr_len - tcp_hdr_len;
 
         printf("\n");
-        print_mac(eth_hdr->ether_shost);
+        printf("Mac ");
+	print_mac(eth_hdr->ether_shost);
         printf(" → ");
         print_mac(eth_hdr->ether_dhost);
-        printf(", %s:%d → %s:%d,\n",
-               inet_ntoa(ip_hdr->ip_src), ntohs(tcp_hdr->th_sport),
-               inet_ntoa(ip_hdr->ip_dst), ntohs(tcp_hdr->th_dport));
+	printf("\n");
+        printf("IP %s:%d → ",inet_ntoa(ip_hdr->ip_src), ntohs(tcp_hdr->th_sport));
+	printf("%s:%d,\n", inet_ntoa(ip_hdr->ip_dst), ntohs(tcp_hdr->th_dport));
 
         if (payload_len > 0)
             print_payload(payload, payload_len);
